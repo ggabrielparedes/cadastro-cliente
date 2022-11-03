@@ -88,5 +88,5 @@ def validar(valor, coluna): #Validar existencia de um valor em uma determinada c
 
 
 if __name__ == '__main__':
-    c = sql.ConexaoBD
+    c = sql.ConexaoBD()
     menu()
