@@ -1,12 +1,10 @@
-pessoa = []
-endereco = []
-
+import sqlconnection as sql
 
 def menu():
     print('************* MENU DE CADASTRO *************')
     print('* [1] Cadastrar Usuário                    *')
     print('* [2] Consultar Usuário                    *')
-    print('* [3] Consultar Banco de Dados             *')
+    print('* [3] Remover Usuário                      *')
     print('* [0] Sair                                 *')
     print('********************************************')
     v = input('Escolha [0] [1] [2] [3] >> ')
@@ -18,65 +16,46 @@ def menu():
         case '2':
             consultar()
         case '3':
-            l = input('Insira o login do usuário: ')
-            while not validar(l):
-                l = input('Login não encontrada tente novamente: ')
-            consultar_db(l)
+            remover()
         case _g:
             print('Valor invalido')
             menu()
 
 
-def cadastro():
+def cadastro(): #Cadastrar usuário dentro de um banco de dados
     while True:
-        dados = {}
-        dados['nome'] = (input('Nome >> '))
 
-        # Verificação de duplicata de login.
-        dados['login'] = input('Login >> ')
-        lista = {i['login']: i for i in pessoa}
-        while dados['login'] in lista:
-            dados['login'] = input(f'[O Login {dados["login"]} esta em uso, insira outro login]: ')
+        login = input('Login >> ')
 
-        dados['senha'] = input('Senha >> ')
+        while validar(login, "nm_login") >= 1: #Verificação de duplicata
+            login = input('Este login já esta sendo utilizado, insira outro >> ')
 
-        dados['email'] = input('E-mail >> ')
-        lista = {i['email']: i for i in pessoa}
-        while dados['email'] in lista:
-            dados['email'] = input(f'[O E-mail {dados["email"]} esta em uso, insira outro login]: ')
+        nome = input('Nome >> ')
+        senha = input('Senha >> ')
 
-        dados['telefone'] = input('Telefone >> ')
-        lista = {i['telefone']: i for i in pessoa}
-        while dados['telefone'] in lista:
-            dados['telefone'] = input(f'[O Telefone {dados["telefone"]} esta em uso, insira outro login]: ')
-        pessoa.append(dados)
+        email = input('E-mail >> ')
+        while validar(email, "nm_email") >= 1: #Verificação de duplicata
+            email = input('Este e-mail já esta sendo utilizado, insira outro >> ')
 
-        pergunta = input('Deseja fazer mais um(S/N): ')
-        if pergunta == 'n':
+        telefone = input('Telefone >> ')
+        while validar(telefone, "cd_telefone") >= 1: #Verificação de duplicata
+            telefone = input('Este telefone já esta sendo utilizado, insira outro >> ')
+
+        cmd = c.executa_DQL(f'INSERT INTO usuario (nm_usuario, nm_senha, nm_email, nm_login, cd_telefone) VALUES ("{nome}", "{senha}", "{email}", "{login}", {telefone})')
+        pergunta = input('Deseja fazer cadastrar mais um usuário? (S/N): ')
+        if pergunta.lower() == 'n':
             menu()
             break
 
 
-def validar(log):
-    lista = {i['login']: i for i in pessoa}
-    try:
-        b = lista[log]
-        return True
-    except KeyError:
-        return False
-
-
-def consultar():
+def consultar(): #Consultar usuário dentro do Banco de Dados
     while True:
         log = input('Insira um login para continuar: ')
-        lista = {i['login']: i for i in pessoa}
-
-        while not validar(log):
+        while validar(log, "nm_login") <= 0:
             log = input(f'Login "{log}" não encontrado tente novamente: ')
 
-        temp = lista[log]
-        print(f'Dados do Usuário\nNome: {temp["nome"]}\nLogin: {temp["login"]}  \nSenha: '
-              f'{temp["senha"]} \nEmail: {temp["telefone"]}')
+        read = c.executa_DQL(f'SELECT nm_usuario, nm_senha, nm_email, nm_login, cd_telefone FROM usuario WHERE nm_login = "{log}"')
+        print(f'Dados do Usuário\nNome: {read[0][0]}\nLogin: {read[0][3]}\nSenha: {read[0][1]}\nEmail: {read[0][2]}\nTelefone: {read[0][4]}')
 
         resp = input('Deseja continuar? (S/N)')
         if resp.lower() == 'n':
@@ -84,16 +63,30 @@ def consultar():
             break
 
 
-def consultar_db(login):
+def remover(): #Remover usuário do Banco de Dados
     while True:
-        lista = {i['login']: i for i in pessoa}
-        s = lista[login]
-        print(f'Nome: {s["nome"]}\nLogin: {s["login"]}')
-        resp = input('Deseja continuar? (S/N)')
-        if resp.lower() == 'n':
-            menu()
-            break
+
+        login = input('Insira o login do usuário: ')
+        while validar(l, "nm_login") <= 0:
+            login = input(f'Login "{l}" não encontrado tente novamente: ')
+
+        resp = input(f'Deseja deletar o usuário com login de {login}? (S/N)>> ')
+        if resp.lower() == 's':
+            c.executa_DQL(f'DELETE FROM usuario WHERE nm_login = "{login}"')
+            resp = input('Deseja continuar ou ir para tela de menu? (S/N)')
+            if resp.lower() == 'n':
+                menu()
+                break
+
+
+def validar(valor, coluna): #Validar existencia de um valor em uma determinada coluna,
+    # retornando quantidade deste valor
+
+    a = c.executa_DQL(f'SELECT COUNT({coluna}) AS'
+                      f' x FROM usuario WHERE {coluna} = "{valor}"')
+    return a[0][0]
 
 
 if __name__ == '__main__':
+    c = sql.conexaoBD()
     menu()
